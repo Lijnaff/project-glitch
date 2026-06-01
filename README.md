@@ -25,7 +25,7 @@ This repo includes a full web-based dashboard:
 - 📄 **Documents** — Upload and manage knowledge base documents
 - ⚙️ **Settings** — Configure temperature, max tokens, context length, system prompt
 
-### Running the Dashboard
+### Quick Start
 
 ```bash
 cd backend
@@ -34,6 +34,27 @@ python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 Open http://localhost:8000 in your browser.
+
+### Auto-Start on Windows
+
+The dashboard is configured to start automatically on Windows boot:
+
+1. A shortcut was placed in the Windows Startup folder: `start-dashboard.vbs`
+2. You can verify it exists at: `%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\ProjectGlitch.lnk`
+3. On every boot, the dashboard starts silently on port 8000
+4. To open it, connect to http://localhost:8000 in your browser
+
+If you need to start manually (no visible console window):
+
+```cmd
+wscript.exe "C:\Users\Naff\project-glitch\start-dashboard.vbs"
+```
+
+Or to see console output for debugging:
+
+```cmd
+C:\Users\Naff\project-glitch\start-dashboard.bat
+```
 
 ## Tech Stack
 
@@ -44,16 +65,12 @@ Open http://localhost:8000 in your browser.
 | Platform | OpenClaw |
 | Model | Local LLM (GGUF quantized) |
 
-## Roadmap
+## Requirements
 
-- [x] Core OpenClaw integration
-- [x] Local LLM inference
-- [x] Custom RLHF training pipeline
-- [x] Document ingestion and vector search
-- [x] Web UI dashboard
-- [ ] Multi-agent workflows
-- [ ] Tool chaining
-- [ ] Mobile companion app
+- Python 3.11+
+- llama.cpp server running on port 8080 (for chat inference)
+- NVIDIA GPU recommended (8GB+ VRAM) or Apple Silicon
+- Windows 11 (for auto-start feature)
 
 ## About
 
