@@ -1,31 +1,8 @@
 # 🤖 Project Glitch
 
-> On-premise personal AI assistant built on the OpenClaw platform. Local execution, zero external API costs, absolute data privacy.
+> On-premise personal AI assistant dashboard. Chat, monitor, models, training, and documents — all in one place.
 
-## Overview
-
-Project Glitch is a fully localized, high-speed personal AI assistant. No cloud dependencies, no API keys, no data leaving your machine.
-
-## Key Features
-
-- **100% Local Execution** — Runs entirely on your hardware
-- **Zero API Costs** — No external API bills
-- **Full Data Privacy** — Your data never leaves your machine
-- **Custom RLHF Training** — Fine-tuned on domain-specific documentation
-- **Low Latency** — Sub-second response times on consumer GPU
-
-## Web UI Dashboard
-
-This repo includes a full web-based dashboard:
-
-- 💬 **Chat** — Streaming chat with session management
-- 📊 **Monitor** — Real-time CPU, RAM, GPU, and inference stats
-- 🧠 **Models** — List, load, and switch between GGUF models
-- 🔥 **Training** — RLHF training panel with job management
-- 📄 **Documents** — Upload and manage knowledge base documents
-- ⚙️ **Settings** — Configure temperature, max tokens, context length, system prompt
-
-### Quick Start
+## Quick Start
 
 ```bash
 cd backend
@@ -35,26 +12,38 @@ python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
 Open http://localhost:8000 in your browser.
 
-### Auto-Start on Windows
+## Connecting to an LLM
 
-The dashboard is configured to start automatically on Windows boot:
+The dashboard supports two backends:
 
-1. A shortcut was placed in the Windows Startup folder: `start-dashboard.vbs`
-2. You can verify it exists at: `%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\ProjectGlitch.lnk`
-3. On every boot, the dashboard starts silently on port 8000
-4. To open it, connect to http://localhost:8000 in your browser
+### OpenRouter (Default — Cloud)
+Uses the same API and model as Hermes Agent. In the dashboard:
+1. Go to **Settings → LLM Backend**
+2. Select **OpenRouter**
+3. Enter your API key (get one at https://openrouter.ai/keys)
+4. Model: `openrouter/owl-alpha` (or any OpenRouter model)
+5. Click **Save & Apply**
 
-If you need to start manually (no visible console window):
+### llama.cpp (Local)
+Run your own GGUF model locally:
+1. Start llama.cpp server on port 8080
+2. In Settings, select **llama.cpp**
+3. Enter your server URL
+4. Click **Save & Apply**
 
-```cmd
-wscript.exe "C:\Users\Naff\project-glitch\start-dashboard.vbs"
-```
+## Features
 
-Or to see console output for debugging:
+- 💬 **Chat** — Streaming chat with session management (SSE)
+- 📊 **Monitor** — Real-time CPU, RAM, GPU, and inference stats
+- 🧠 **Models** — List, load, and switch between GGUF models
+- 🔥 **Training** — RLHF training panel with job management
+- 📄 **Documents** — Upload and manage knowledge base documents
+- ⚙️ **Settings** — Configure temperature, max tokens, context length, system prompt
 
-```cmd
-C:\Users\Naff\project-glitch\start-dashboard.bat
-```
+## Auto-Start on Windows
+
+The dashboard starts automatically on boot via Windows Startup folder:
+`%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\ProjectGlitch.lnk`
 
 ## Tech Stack
 
@@ -62,19 +51,11 @@ C:\Users\Naff\project-glitch\start-dashboard.bat
 |-----------|------------|
 | Backend | Python, FastAPI |
 | Frontend | Vanilla HTML/CSS/JS |
-| Platform | OpenClaw |
-| Model | Local LLM (GGUF quantized) |
-
-## Requirements
-
-- Python 3.11+
-- llama.cpp server running on port 8080 (for chat inference)
-- NVIDIA GPU recommended (8GB+ VRAM) or Apple Silicon
-- Windows 11 (for auto-start feature)
+| LLM | OpenRouter API or llama.cpp |
 
 ## About
 
-Built by [Nafyad Fantaye](https://github.com/Lijnaff) — Full-Stack Software Engineer & AI Architect based in Addis Ababa, Ethiopia.
+Built by [Nafyad Fantaye](https://github.com/Lijnaff) — Full-Stack Software Engineer & AI Architect.
 
 ## License
 
