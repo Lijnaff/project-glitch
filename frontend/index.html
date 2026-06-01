@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Glitch — Dashboard</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+</head>
+<body class="noise">
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <span class="logo-icon">⚡</span>
+          <span class="logo-text">Glitch<span class="dot">.</span></span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-page="chat">
+          <span class="nav-icon">💬</span>
+          <span>Chat</span>
+        </button>
+        <button class="nav-item" data-page="monitor">
+          <span class="nav-icon">📊</span>
+          <span>Monitor</span>
+        </button>
+        <button class="nav-item" data-page="models">
+          <span class="nav-icon">🧠</span>
+          <span>Models</span>
+        </button>
+        <button class="nav-item" data-page="training">
+          <span class="nav-icon">🔥</span>
+          <span>Training</span>
+        </button>
+        <button class="nav-item" data-page="documents">
+          <span class="nav-icon">📄</span>
+          <span>Documents</span>
+        </button>
+        <button class="nav-item" data-page="settings">
+          <span class="nav-icon">⚙️</span>
+          <span>Settings</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="system-mini" id="sidebar-system">
+          <div class="mini-stat">
+            <span class="mini-label">CPU</span>
+            <div class="mini-bar"><div class="mini-bar-fill" id="cpu-mini" style="width:0%"></div></div>
+          </div>
+          <div class="mini-stat">
+            <span class="mini-label">RAM</span>
+            <div class="mini-bar"><div class="mini-bar-fill" id="ram-mini" style="width:0%"></div></div>
+          </div>
+        </div>
+        <div class="version">v1.0.0</div>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="main-content">
+
+      <!-- Chat page -->
+      <div class="page active" id="page-chat">
+        <div class="chat-layout">
+          <div class="session-list">
+            <div class="session-list-header">
+              <h3>Chats</h3>
+              <button class="btn-icon" id="new-chat-btn" title="New chat">+</button>
+            </div>
+            <div class="sessions" id="sessions-list"></div>
+          </div>
+
+          <div class="chat-area">
+            <div class="chat-header">
+              <span class="chat-title" id="chat-title">No chat selected</span>
+              <button class="btn-icon btn-danger" id="delete-chat-btn" title="Delete chat" style="display:none">🗑️</button>
+            </div>
+            <div class="messages" id="messages">
+              <div class="empty-state" id="empty-state">
+                <div class="empty-icon">⚡</div>
+                <p>Start a new chat or select an existing one</p>
+              </div>
+            </div>
+            <div class="chat-input-area">
+              <div class="chat-input-wrap">
+                <textarea id="chat-input" placeholder="Message Glitch..." rows="1"></textarea>
+                <button class="btn-send" id="send-btn" title="Send">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                </button>
+              </div>
+              <div class="input-hints">
+                <span>Enter to send</span>
+                <span>Shift+Enter for new line</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Monitor page -->
+      <div class="page" id="page-monitor">
+        <div class="page-header">
+          <h1>System Monitor</h1>
+          <p>Real-time hardware and inference stats</p>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-header"><span class="stat-icon">🖥️</span><span class="stat-title">CPU</span></div>
+            <div class="stat-value" id="cpu-stat">—</div>
+            <div class="stat-bar"><div class="stat-bar-fill" id="cpu-bar" style="width:0%"></div></div>
+            <div class="stat-sub" id="cpu-cores">— cores</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-header"><span class="stat-icon">💾</span><span class="stat-title">RAM</span></div>
+            <div class="stat-value" id="ram-stat">—</div>
+            <div class="stat-bar"><div class="stat-bar-fill" id="ram-bar" style="width:0%"></div></div>
+            <div class="stat-sub" id="ram-pct">—</div>
+          </div>
+          <div class="stat-card" id="gpu-card" style="display:none">
+            <div class="stat-header"><span class="stat-icon">🎮</span><span class="stat-title" id="gpu-name">GPU</span></div>
+            <div class="stat-value" id="gpu-mem">—</div>
+            <div class="stat-bar"><div class="stat-bar-fill" id="gpu-bar" style="width:0%"></div></div>
+            <div class="stat-sub" id="gpu-temp">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-header"><span class="stat-icon">⚡</span><span class="stat-title">Inference</span></div>
+            <div class="stat-value" id="inf-model">—</div>
+            <div class="stat-sub" id="inf-status">Idle</div>
+            <div class="stat-sub" id="inf-tokens">0 tokens total</div>
+          </div>
+        </div>
+        <div class="monitor-logs">
+          <h3>System Info</h3>
+          <div class="log-output" id="system-logs">
+            <div class="log-line">Uptime: <span id="uptime">—</span></div>
+            <div class="log-line">GPU Util: <span id="gpu-util">—</span></div>
+            <div class="log-line">Context: <span id="ctx-length">4096</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Models page -->
+      <div class="page" id="page-models">
+        <div class="page-header">
+          <h1>Model Manager</h1>
+          <p>Load and switch between GGUF models</p>
+        </div>
+        <div class="model-list" id="model-list">
+          <p class="empty-text">No models found. Place .gguf files in data/models/</p>
+        </div>
+        <div class="model-dropzone" id="model-dropzone">
+          <p>📁 Models directory: <code>data/models/</code></p>
+          <p style="margin-top:8px;font-size:0.85rem">Place .gguf files directly on the server. Large files should not be uploaded via browser.</p>
+        </div>
+      </div>
+
+      <!-- Training page -->
+      <div class="page" id="page-training">
+        <div class="page-header">
+          <h1>RLHF Training</h1>
+          <p>Fine-tune models with reinforcement learning from human feedback</p>
+        </div>
+        <div class="training-layout">
+          <div class="training-form card">
+            <h3>Start Training Job</h3>
+            <div class="form-group">
+              <label>Base Model</label>
+              <select id="train-model"><option>Loading models...</option></select>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Epochs</label>
+                <input type="number" id="train-epochs" value="3" min="1" max="20">
+              </div>
+              <div class="form-group">
+                <label>Learning Rate</label>
+                <input type="number" id="train-lr" value="0.0002" step="0.0001">
+              </div>
+              <div class="form-group">
+                <label>Batch Size</label>
+                <input type="number" id="train-batch" value="4" min="1" max="32">
+              </div>
+              <div class="form-group">
+                <label>LoRA Rank</label>
+                <input type="number" id="train-lora" value="16" min="1" max="64">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Dataset Path</label>
+              <input type="text" id="train-dataset" placeholder="data/training_data.jsonl">
+            </div>
+            <button class="btn btn-primary" id="start-training-btn">Start Training</button>
+          </div>
+          <div class="training-jobs card">
+            <h3>Training Jobs</h3>
+            <div id="training-jobs-list">
+              <p class="empty-text">No training jobs yet</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Documents page -->
+      <div class="page" id="page-documents">
+        <div class="page-header">
+          <h1>Knowledge Base</h1>
+          <p>Upload documents for the AI to reference</p>
+        </div>
+        <div class="doc-upload" id="doc-dropzone">
+          <div class="upload-icon">📄</div>
+          <p>Drop files here or click to upload</p>
+          <p class="upload-hint">.txt, .md, .pdf — max 50MB</p>
+          <input type="file" id="doc-file-input" multiple style="display:none">
+        </div>
+        <div class="doc-list" id="doc-list">
+          <p class="empty-text">No documents uploaded yet</p>
+        </div>
+      </div>
+
+      <!-- Settings page -->
+      <div class="page" id="page-settings">
+        <div class="page-header">
+          <h1>Settings</h1>
+          <p>Configure model parameters and defaults</p>
+        </div>
+        <div class="settings-grid">
+          <div class="settings-card card">
+            <h3>Generation</h3>
+            <div class="form-group">
+              <label>Temperature: <span id="temp-val">0.7</span></label>
+              <input type="range" id="setting-temp" min="0" max="2" step="0.05" value="0.7">
+            </div>
+            <div class="form-group">
+              <label>Max Tokens: <span id="maxtok-val">2048</span></label>
+              <input type="range" id="setting-maxtok" min="256" max="8192" step="256" value="2048">
+            </div>
+            <div class="form-group">
+              <label>Context Length: <span id="ctx-val">4096</span></label>
+              <input type="range" id="setting-ctx" min="1024" max="32768" step="1024" value="4096">
+            </div>
+          </div>
+          <div class="settings-card card">
+            <h3>System Prompt</h3>
+            <textarea id="setting-sysprompt" rows="8" placeholder="You are a helpful assistant...">You are Glitch, a helpful AI assistant running locally.</textarea>
+            <button class="btn btn-primary" id="save-settings-btn" style="margin-top:16px">Save Settings</button>
+          </div>
+          <div class="settings-card card">
+            <h3>LLM Server</h3>
+            <div class="form-group">
+              <label>Backend URL</label>
+              <input type="text" id="setting-llm-url" value="http://localhost:8080">
+            </div>
+            <button class="btn btn-outline" id="test-connection-btn">Test Connection</button>
+            <div id="connection-result" style="margin-top:8px;font-size:0.85rem;"></div>
+          </div>
+          <div class="settings-card card">
+            <h3>About</h3>
+            <p><strong>Project Glitch</strong> v1.0.0</p>
+            <p>On-premise AI assistant dashboard.</p>
+            <p>Built by <a href="https://github.com/Lijnaff" target="_blank" style="color:var(--accent-cyan)">Nafyad Fantaye</a></p>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/chat.js"></script>
+  <script src="js/monitor.js"></script>
+  <script src="js/settings.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

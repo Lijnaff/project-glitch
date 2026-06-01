@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.env
+venv/
+data/models/*.gguf
+data/sessions/*.json
+!data/documents/
+dist/
+build/
+node_modules/
+.DS_Store
+Thumbs.db
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
