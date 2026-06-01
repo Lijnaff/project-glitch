@@ -1,8 +1,7 @@
-"""Hermes bridge endpoints — direct agent communication via message queue."""
+"""LLM inference service — supports Hermes Agent (CLI), OpenRouter (cloud), and llama.cpp (local) backends."""
 
 import os
 import httpx
-import time
 import json as _json
 from typing import Optional, AsyncGenerator
 from backend.config import LLM_HOST, LLM_PORT
@@ -73,52 +72,91 @@ async def _hermes_stream(
     temperature: float,
     max_tokens: int,
 ) -> AsyncGenerator[str, None]:
-    """Stream chat via Hermes Agent bridge (message queue).
-    
-    1. Submit the user message to the inbox queue
-    2. Poll the outbox queue for Hermes' response
-    3. Yield the response as it arrives
-    """
-    from backend.services.hermes_bridge import (
-        submit_message, get_response, get_queue_status
-    )
+    """Stream chat via Hermes Agent CLI subprocess.
 
-    # Get the last user message
+    Calls `hermes chat -q <message>` and yields the response word-by-word
+    to simulate streaming. Hermes handles tool-calling, memory, skills, etc.
+    """
+    import asyncio
+    from pathlib import Path
+
+    # Build conversation context from message history
+    # Format: system prompt + recent messages so Hermes has context
+    conversation_parts = []
+    for msg in messages:
+        role = msg.role.value
+        if role == "system":
+            conversation_parts.append(f"[System: {msg.content}]")
+        elif role == "user":
+            conversation_parts.append(f"User: {msg.content}")
+        elif role == "assistant":
+            conversation_parts.append(f"Assistant: {msg.content}")
+
+    # The last user message is the actual query
     user_msg = next((m for m in reversed(messages) if m.role.value == "user"), None)
     if not user_msg:
         yield "\n[Error: No user message found]"
         return
 
-    # Get system prompt if any
-    sys_msg = next((m for m in messages if m.role.value == "system"), None)
-    system_prompt = sys_msg.content if sys_msg else ""
+    # Build the full context string
+    context = "\n\n".join(conversation_parts)
 
-    # Submit to Hermes inbox
-    session_id = "hermes-bridge"
-    request_id = submit_message(session_id, user_msg.content, system_prompt)
+    # Path to Hermes CLI
+    hermes_python = Path(r"C:\Users\Naff\AppData\Local\hermes\hermes-agent\venv\Scripts\python.exe")
+    hermes_main = Path(r"C:\Users\Naff\AppData\Local\hermes\hermes-agent\hermes_cli\main.py")
+
+    if not hermes_python.exists():
+        yield "\n[Error: Hermes Agent not found. Install at C:\\Users\\Naff\\AppData\\Local\\hermes\\hermes-agent]"
+        return
 
     yield ""  # Initial empty chunk to establish SSE connection
 
-    # Poll for response (up to 300 seconds = 5 minutes)
-    start_time = time.time()
-    timeout = 300
-    poll_interval = 2  # seconds
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            str(hermes_python),
+            "-m", "hermes_cli.main",
+            "chat",
+            "-q", context,
+            "-Q",
+            "--yolo",
+            "--max-turns", "5",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
 
-    while time.time() - start_time < timeout:
-        time.sleep(poll_interval)
+        stdout, stderr = await asyncio.wait_for(
+            proc.communicate(), timeout=120
+        )
 
-        # Check status
-        status = get_queue_status(request_id)
-        if status["status"] == "completed":
-            response = status.get("response", {})
-            content = response.get("content", "")
-            if content:
-                yield content
-            else:
-                yield "\n[Error: Empty response from Hermes]"
+        if proc.returncode != 0 and stderr:
+            err_text = stderr.decode("utf-8", errors="replace")[:200]
+            yield f"\n[Hermes error: {err_text}]"
             return
 
-    yield "\n[Timeout: Hermes did not respond within 5 minutes. Make sure Hermes is running and checking the inbox.]"
+        response = stdout.decode("utf-8", errors="replace").strip()
+
+        # Strip session_id footer Hermes appends
+        if "\nsession_id:" in response:
+            response = response[:response.rfind("\nsession_id:")].strip()
+
+        if not response:
+            yield "\n[Error: Hermes returned empty response]"
+            return
+
+        # Simulate streaming: yield word by word for natural feel
+        words = response.split(" ")
+        for i, word in enumerate(words):
+            if i < len(words) - 1:
+                yield word + " "
+            else:
+                yield word
+
+    except asyncio.TimeoutError:
+        yield "\n[Timeout: Hermes did not respond within 2 minutes]"
+    except FileNotFoundError:
+        yield "\n[Error: Hermes Python or main.py not found. Check installation path.]"
+    except Exception as e:
+        yield f"\n[Error: Hermes subprocess failed — {e}]"
 
 
 async def _openrouter_stream(
