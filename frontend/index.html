@@ -253,11 +253,31 @@
             <div class="form-group">
               <label>Backend</label>
               <select id="setting-backend">
-                <option value="openrouter">OpenRouter (Cloud — same model as Hermes)</option>
-                <option value="llama_cpp">llama.cpp (Local — your own GPU)</option>
+                <option value="hermes">💬 Hermes Agent (Direct — talks to YOUR agent)</option>
+                <option value="openrouter">🌐 OpenRouter (Cloud — same model)</option>
+                <option value="llama_cpp">🖥️ llama.cpp (Local — your own GPU)</option>
               </select>
             </div>
-            <div id="openrouter-settings">
+            <div id="hermes-settings">
+              <div style="padding:12px;background:var(--accent-cyan-dim);border:1px solid rgba(6,182,212,0.2);border-radius:var(--radius);">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                  <span style="font-size:1.2rem;">💬</span>
+                  <strong>Hermes Agent Bridge</strong>
+                  <span class="conn-dot ok" id="hermes-status-dot"></span>
+                </div>
+                <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:8px;">
+                  Messages are queued and processed by your Hermes Agent every ~1 min.
+                  The chat will wait up to 5 minutes for a response.
+                </p>
+                <div style="font-size:0.75rem;color:var(--text-muted);">
+                  Inbox: <code>data/bridge_queue/inbox.json</code><br>
+                  Outbox: <code>data/bridge_queue/outbox.json</code>
+                </div>
+              </div>
+              <button class="btn btn-outline" id="test-hermes-btn" style="margin-top:8px">Send Test Message</button>
+              <div id="hermes-test-result" style="margin-top:8px;font-size:0.85rem;"></div>
+            </div>
+            <div id="openrouter-settings" style="display:none">
               <div class="form-group">
                 <label>OpenRouter API Key</label>
                 <input type="password" id="setting-or-key" placeholder="sk-or-v1-...">

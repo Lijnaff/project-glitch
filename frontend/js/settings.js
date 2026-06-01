@@ -170,6 +170,7 @@ function escHtml(s) {
 // ============ BACKEND SWITCHER ============
 document.getElementById('setting-backend').addEventListener('change', function() {
   var val = this.value;
+  document.getElementById('hermes-settings').style.display = val === 'hermes' ? 'block' : 'none';
   document.getElementById('openrouter-settings').style.display = val === 'openrouter' ? 'block' : 'none';
   document.getElementById('llamacpp-settings').style.display = val === 'llama_cpp' ? 'block' : 'none';
 });
@@ -210,4 +211,32 @@ fetch('/api/models/backend').then(function(r) { return r.json(); }).then(functio
     sel.dispatchEvent(new Event('change'));
   }
 }).catch(function() {});
+
+// Hermes test message
+document.getElementById('test-hermes-btn').addEventListener('click', async function() {
+  var result = document.getElementById('hermes-test-result');
+  result.innerHTML = 'Sending test message to Hermes...';
+  try {
+    // Submit a test message to the inbox via the chat API
+    var resp = await fetch('/api/chat/stream', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        session_id: 'hermes-test',
+        message: 'Hello! This is a test message from the Project Glitch dashboard. Please respond to confirm the bridge is working.',
+        temperature: 0.7,
+        max_tokens: 512,
+      }),
+    });
+
+    if (resp.ok) {
+      result.innerHTML = '<span class="conn-dot ok"></span>Message sent! Hermes should respond within 1 minute. Check the Chat page for the response.';
+    } else {
+      var err = await resp.text();
+      result.innerHTML = '<span class="conn-dot bad"></span>Error: ' + err;
+    }
+  } catch(e) {
+    result.innerHTML = '<span class="conn-dot bad"></span>Connection failed: ' + e.message;
+  }
+});
 

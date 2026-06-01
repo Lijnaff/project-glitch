@@ -25,8 +25,8 @@ DEFAULT_TEMPERATURE = 0.7
 DEFAULT_MAX_TOKENS = 2048
 DEFAULT_CONTEXT_LENGTH = 4096
 
-# LLM backend: "openrouter" (cloud) or "llama_cpp" (local)
-LLM_BACKEND = os.environ.get("GLITCH_LLM_BACKEND", "openrouter")
+# LLM backend: "hermes" (direct agent), "openrouter" (cloud), or "llama_cpp" (local)
+LLM_BACKEND = os.environ.get("GLITCH_LLM_BACKEND", "hermes")
 
 # OpenRouter settings
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")

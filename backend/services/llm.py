@@ -1,4 +1,4 @@
-"""LLM inference service — supports OpenRouter (cloud) and llama.cpp (local) backends."""
+"""Hermes bridge endpoints — direct agent communication via message queue."""
 
 import os
 import httpx
@@ -12,8 +12,8 @@ _current_model: Optional[str] = None
 _total_tokens: int = 0
 _is_generating: bool = False
 
-# Backend selection: "openrouter" or "llama_cpp"
-_llm_backend = os.environ.get("GLITCH_LLM_BACKEND", "openrouter")
+# Backend selection: "openrouter", "llama_cpp", or "hermes"
+_llm_backend = os.environ.get("GLITCH_LLM_BACKEND", "hermes")
 
 # OpenRouter settings
 _OPENROUTER_BASE = "https://openrouter.ai/api/v1"
@@ -32,7 +32,6 @@ def get_inference_stats() -> InferenceStats:
 
 
 def set_backend(backend: str):
-    """Switch between 'openrouter' and 'llama_cpp'."""
     global _llm_backend
     _llm_backend = backend
 
@@ -51,17 +50,75 @@ async def chat_stream(
     _is_generating = True
     token_count = 0
 
-    if _llm_backend == "openrouter":
-        async for chunk in _openrouter_stream(messages, temperature, max_tokens):
-            token_count += 1
-            yield chunk
-    else:
-        async for chunk in _llamacpp_stream(messages, temperature, max_tokens):
-            token_count += 1
-            yield chunk
+    try:
+        if _llm_backend == "hermes":
+            async for chunk in _hermes_stream(messages, temperature, max_tokens):
+                token_count += 1
+                yield chunk
+        elif _llm_backend == "openrouter":
+            async for chunk in _openrouter_stream(messages, temperature, max_tokens):
+                token_count += 1
+                yield chunk
+        else:
+            async for chunk in _llamacpp_stream(messages, temperature, max_tokens):
+                token_count += 1
+                yield chunk
+    finally:
+        _total_tokens += token_count
+        _is_generating = False
 
-    _total_tokens += token_count
-    _is_generating = False
+
+async def _hermes_stream(
+    messages: list[ChatMessage],
+    temperature: float,
+    max_tokens: int,
+) -> AsyncGenerator[str, None]:
+    """Stream chat via Hermes Agent bridge (message queue).
+    
+    1. Submit the user message to the inbox queue
+    2. Poll the outbox queue for Hermes' response
+    3. Yield the response as it arrives
+    """
+    from backend.services.hermes_bridge import (
+        submit_message, get_response, get_queue_status
+    )
+
+    # Get the last user message
+    user_msg = next((m for m in reversed(messages) if m.role.value == "user"), None)
+    if not user_msg:
+        yield "\n[Error: No user message found]"
+        return
+
+    # Get system prompt if any
+    sys_msg = next((m for m in messages if m.role.value == "system"), None)
+    system_prompt = sys_msg.content if sys_msg else ""
+
+    # Submit to Hermes inbox
+    session_id = "hermes-bridge"
+    request_id = submit_message(session_id, user_msg.content, system_prompt)
+
+    yield ""  # Initial empty chunk to establish SSE connection
+
+    # Poll for response (up to 300 seconds = 5 minutes)
+    start_time = time.time()
+    timeout = 300
+    poll_interval = 2  # seconds
+
+    while time.time() - start_time < timeout:
+        time.sleep(poll_interval)
+
+        # Check status
+        status = get_queue_status(request_id)
+        if status["status"] == "completed":
+            response = status.get("response", {})
+            content = response.get("content", "")
+            if content:
+                yield content
+            else:
+                yield "\n[Error: Empty response from Hermes]"
+            return
+
+    yield "\n[Timeout: Hermes did not respond within 5 minutes. Make sure Hermes is running and checking the inbox.]"
 
 
 async def _openrouter_stream(
@@ -69,9 +126,9 @@ async def _openrouter_stream(
     temperature: float,
     max_tokens: int,
 ) -> AsyncGenerator[str, None]:
-    """Stream from OpenRouter API (same API Hermes uses)."""
+    """Stream from OpenRouter API."""
     if not _OPENROUTER_API_KEY:
-        yield "\n[Error: No OpenRouter API key configured. Set OPENROUTER_API_KEY environment variable or add it to backend/.env]"
+        yield "\n[Error: No OpenRouter API key configured]"
         return
 
     url = f"{_OPENROUTER_BASE}/chat/completions"
@@ -96,7 +153,6 @@ async def _openrouter_stream(
                     body = await response.aread()
                     yield f"\n[Error: OpenRouter returned {response.status_code}: {body.decode()[:200]}]"
                     return
-
                 async for line in response.aiter_lines():
                     if line.startswith("data: "):
                         data = line[6:]
@@ -147,6 +203,5 @@ async def _llamacpp_stream(
 
 
 def load_model(model_name: str, context_length: int = 4096):
-    """Signal which model is loaded."""
     global _current_model
     _current_model = model_name

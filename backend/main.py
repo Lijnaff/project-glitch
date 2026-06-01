@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
 
-from backend.routers import chat, system, models, training, documents
+from backend.routers import chat, system, models, training, documents, bridge
 
 app = FastAPI(title="Project Glitch", version="1.0.0")
 
@@ -22,6 +22,7 @@ app.include_router(system.router, prefix="/api/system", tags=["system"])
 app.include_router(models.router, prefix="/api/models", tags=["models"])
 app.include_router(training.router, prefix="/api/training", tags=["training"])
 app.include_router(documents.router, prefix="/api/documents", tags=["documents"])
+app.include_router(bridge.router, prefix="/api/bridge", tags=["bridge"])
 
 # Static files
 frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
