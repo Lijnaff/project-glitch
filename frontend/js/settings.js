@@ -166,3 +166,48 @@ function escHtml(s) {
   d.textContent = s;
   return d.innerHTML;
 }
+
+// ============ BACKEND SWITCHER ============
+document.getElementById('setting-backend').addEventListener('change', function() {
+  var val = this.value;
+  document.getElementById('openrouter-settings').style.display = val === 'openrouter' ? 'block' : 'none';
+  document.getElementById('llamacpp-settings').style.display = val === 'llama_cpp' ? 'block' : 'none';
+});
+
+document.getElementById('save-backend-btn').addEventListener('click', async function() {
+  var backend = document.getElementById('setting-backend').value;
+
+  // Save backend selection via API
+  await api.post('/api/models/backend', { backend: backend });
+
+  // Save OpenRouter settings to .env on server (via a simple config endpoint)
+  if (backend === 'openrouter') {
+    var key = document.getElementById('setting-or-key').value;
+    var model = document.getElementById('setting-or-model').value;
+    if (key) {
+      await api.post('/api/models/config', {
+        openrouter_key: key,
+        openrouter_model: model,
+      });
+    }
+  }
+
+  // Reload the runtime backend
+  try {
+    var r = await fetch('/api/models/backend');
+    var d = await r.json();
+    alert('Backend switched to: ' + d.backend);
+  } catch(e) {
+    alert('Backend saved. Restart the server for changes to take full effect.');
+  }
+});
+
+// Load current backend on page open
+fetch('/api/models/backend').then(function(r) { return r.json(); }).then(function(d) {
+  var sel = document.getElementById('setting-backend');
+  if (sel && d.backend) {
+    sel.value = d.backend;
+    sel.dispatchEvent(new Event('change'));
+  }
+}).catch(function() {});
+

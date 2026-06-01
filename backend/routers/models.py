@@ -1,10 +1,13 @@
 """Model management endpoints."""
 
 import os
+from pathlib import Path
 from fastapi import APIRouter
 from backend.models.schemas import ModelInfo, ModelLoadRequest, SettingsUpdate
 from backend.config import MODELS_DIR, DEFAULT_TEMPERATURE, DEFAULT_MAX_TOKENS, DEFAULT_CONTEXT_LENGTH
-from backend.services.llm import load_model
+from backend.services.llm import load_model, get_backend, set_backend
+
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 router = APIRouter()
 
@@ -49,7 +52,9 @@ async def load_model_endpoint(req: ModelLoadRequest):
 
 @router.get("/settings")
 async def get_settings():
-    return _settings
+    s = dict(_settings)
+    s["backend"] = get_backend()
+    return s
 
 
 @router.patch("/settings")
@@ -63,3 +68,51 @@ async def update_settings(req: SettingsUpdate):
     if req.system_prompt is not None:
         _settings["system_prompt"] = req.system_prompt
     return _settings
+
+
+@router.get("/backend")
+async def get_current_backend():
+    return {
+        "backend": get_backend(),
+        "available": ["openrouter", "llama_cpp"],
+    }
+
+
+@router.post("/backend")
+async def switch_backend(req: dict):
+    backend = req.get("backend", "openrouter")
+    if backend not in ("openrouter", "llama_cpp"):
+        return {"error": f"Unknown backend: {backend}. Use 'openrouter' or 'llama_cpp'"}
+    set_backend(backend)
+    return {"ok": True, "backend": backend}
+
+
+@router.post("/config")
+async def save_config(req: dict):
+    """Save OpenRouter config to .env file."""
+    env_path = BASE_DIR / ".env"
+    env_vars = {}
+
+    # Read existing .env
+    if env_path.exists():
+        for line in env_path.read_text().splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, v = line.split("=", 1)
+                env_vars[k.strip()] = v.strip()
+
+    # Update with new values
+    if req.get("openrouter_key"):
+        env_vars["OPENROUTER_API_KEY"] = req["openrouter_key"]
+        os.environ["OPENROUTER_API_KEY"] = req["openrouter_key"]
+    if req.get("openrouter_model"):
+        env_vars["GLITCH_OPENROUTER_MODEL"] = req["openrouter_model"]
+        os.environ["GLITCH_OPENROUTER_MODEL"] = req["openrouter_model"]
+
+    # Write back
+    lines = []
+    for k, v in env_vars.items():
+        lines.append(f"{k}={v}")
+    env_path.write_text("\n".join(lines) + "\n")
+
+    return {"ok": True, "message": "Config saved to .env. Restart server for full effect."}
